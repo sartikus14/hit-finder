@@ -1,0 +1,16 @@
+{
+  "name": "Hit Finder",
+  "short_name": "Hit Finder",
+  "description": "Which MLB hitters are most likely to get a hit today.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#06140D",
+  "theme_color": "#1E7A3E",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

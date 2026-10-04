@@ -26,6 +26,13 @@ Ranks every MLB starting hitter by their chance of getting at least one hit agai
 
 **Optional: a nicer link.** In the Vercel project, go to **Settings → Domains** to rename the free `.vercel.app` address or connect a domain you buy.
 
+## Install it like an app
+
+- **iPhone (Safari):** open the site, tap the Share button, then **Add to Home Screen**.
+- **Android (Chrome):** open the site, tap the ⋮ menu, then **Install app** (or **Add to Home screen**).
+
+It gets the green Hit Finder icon and opens full screen, with no browser bar.
+
 ## Updating later
 
 Edit or replace a file on GitHub and commit it. Vercel redeploys automatically within a minute.
