@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06140D">
+<title>Hit Finder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231E7A3E'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' text-anchor='middle' fill='%23ffffff'%3EH%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Graduate&family=Zilla+Slab:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Broadcast layout, ballpark green, varsity type. One committed dark look. */
+:root{
+  --bg:#06140D; --panel:#0E2418; --panel2:#153222; --line:#1D3D2A; --chalk:#F2F0E6;
+  --text:#FFFFFF; --muted:#9DB5A6; --faint:#8AA394; --ink:#06140D; --ink2:#3E4C43;
+  --brand:#1E7A3E; --hi:#46E07B; --good:#1FA855; --bad:#C93A2C; --live:#E0442F; --neutral:#24402F;
+  --display:Graduate, Rockwell, Georgia, serif;
+  --slab:'Zilla Slab', Rockwell, Georgia, serif;
+  --body:Barlow, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased}
+body{min-height:100vh}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;
+  background:var(--bg) repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 48px, transparent 48px 96px)}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:stretch;min-height:58px;background:var(--brand);padding-top:env(safe-area-inset-top,0px)}
+.wordmark{display:flex;align-items:center;padding:0 16px;font-family:var(--display);font-size:20px;letter-spacing:.04em;text-transform:uppercase;background:none;border:0}
+.livetag{display:flex;align-items:center;margin:14px 0;padding:0 10px;background:var(--hi);color:var(--ink);font-family:var(--slab);font-weight:700;font-size:12px;letter-spacing:.14em;transform:skewX(-14deg)}
+.livetag span{transform:skewX(14deg)}
+.spacer{flex:1}
+.datebtn{display:flex;align-items:center;gap:6px;background:var(--chalk);color:var(--ink);border:0;padding:0 16px;font-family:var(--slab);font-weight:700;font-size:15px;letter-spacing:.04em;text-transform:uppercase;min-width:44px}
+
+main{flex:1;padding:0 16px 32px}
+.datepanel{margin-top:12px;background:var(--chalk);color:var(--ink);padding:12px 14px;display:grid;gap:8px}
+.datepanel label{font-family:var(--slab);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+.datepanel .row{display:flex;gap:8px;flex-wrap:wrap}
+.datepanel input{flex:1;min-width:150px;font:inherit;font-size:16px;padding:10px;border:2px solid var(--ink);background:#fff;color:var(--ink);color-scheme:light}
+.datepanel button{border:0;background:var(--brand);color:#fff;font-family:var(--slab);font-weight:700;font-size:15px;padding:10px 14px;text-transform:uppercase;letter-spacing:.06em;min-height:44px}
+.datepanel .quick{background:var(--ink);}
+
+.tabs{display:flex;gap:10px;margin-top:16px}
+.tab{flex:1;min-height:44px;border:2px solid var(--chalk);transform:skewX(-12deg);background:transparent;color:var(--chalk);font-family:var(--slab);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase}
+.tab span{display:inline-block;transform:skewX(12deg)}
+.tab.on{background:var(--chalk);color:var(--ink)}
+
+.kicker{margin:22px 0 8px;font-family:var(--slab);font-weight:700;font-size:13px;letter-spacing:.22em;color:var(--hi);text-transform:uppercase}
+.banner{display:flex;align-items:center;gap:10px;margin:24px 0 8px}
+.banner b{background:var(--brand);padding:4px 10px;font-family:var(--display);font-weight:400;font-size:18px;letter-spacing:.04em;transform:skewX(-12deg);text-transform:uppercase}
+.banner b span{display:inline-block;transform:skewX(12deg)}
+.banner small{font-family:var(--slab);font-weight:600;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+
+/* lower-third card */
+.l3{display:block;width:100%;padding:0;border:0;background:transparent;text-align:left}
+.l3 .bar{display:flex;align-items:stretch}
+.teamblk{display:flex;align-items:center;justify-content:center;min-width:56px;padding:0 6px;font-family:var(--display);font-size:18px;letter-spacing:.02em}
+.namebox{flex:1;min-width:0;background:var(--chalk);color:var(--ink);padding:8px 12px}
+.namebox .nm{display:block;font-family:var(--display);font-size:19px;line-height:1.15;text-transform:uppercase}
+.namebox .meta{display:block;font-family:var(--slab);font-weight:600;font-size:13.5px;text-transform:uppercase;color:var(--ink2)}
+.pctbox{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:80px;padding:0 10px;background:var(--panel2);color:var(--text)}
+.pctbox.top{background:var(--hi);color:var(--ink)}
+.pctbox .n{font-family:var(--display);font-size:26px;line-height:1}
+.pctbox .l{font-family:var(--slab);font-weight:700;font-size:11px;letter-spacing:.12em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;background:var(--panel);padding:8px 12px}
+.chip{font-family:var(--slab);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;background:var(--neutral);color:#CFE0D4}
+.chip.pos{background:var(--good);color:#fff}
+.chip.neg{background:var(--bad);color:#fff}
+
+/* leaderboard rows */
+.board{display:flex;flex-direction:column;gap:4px}
+.row{display:grid;grid-template-columns:38px 6px minmax(0,1fr) 72px;align-items:stretch;width:100%;padding:0;border:0;background:var(--panel);text-align:left;min-height:50px}
+.row .rk{display:flex;align-items:center;justify-content:center;background:var(--panel2);font-family:var(--display);font-size:17px}
+.row .rk.top{background:var(--hi);color:var(--ink)}
+.row .nm{min-width:0;padding:6px 10px}
+.row .nm b{display:block;font-family:var(--slab);font-weight:700;font-size:17px;text-transform:uppercase;line-height:1.2}
+.row .nm small{display:block;font-size:12.5px;color:var(--muted)}
+.row .pc{display:flex;align-items:center;justify-content:flex-end;padding-right:12px;font-family:var(--display);font-size:19px}
+
+/* games */
+.games{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+.gcard{display:block;width:100%;padding:0;border:0;background:transparent;text-align:left}
+.ghead{display:flex;justify-content:space-between;align-items:center;background:var(--chalk);color:var(--ink);padding:4px 10px;font-family:var(--slab);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+.ghead .live{color:var(--live)}
+.gteams{display:grid;grid-template-columns:62px minmax(0,1fr) auto;background:var(--panel)}
+.gteams .nm{padding:10px 12px;font-family:var(--slab);font-weight:700;font-size:18px;text-transform:uppercase}
+.gteams .sp{padding:10px 12px;font-size:13px;color:var(--muted);align-self:center}
+.gteams .b2{border-top:1px solid var(--line)}
+.gfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel2);padding:8px 12px;font-size:13px}
+.gfoot span:first-child{color:var(--muted)}
+.gfoot b{color:var(--text);font-weight:600}
+.gfoot .go{color:var(--hi);font-family:var(--slab);font-weight:700;letter-spacing:.08em;white-space:nowrap}
+
+/* game screen */
+.scorebug{display:flex;align-items:stretch;margin-top:14px;background:var(--panel);min-height:52px}
+.back{width:48px;display:flex;align-items:center;justify-content:center;background:var(--panel2);border:0}
+.scorebug .at{display:flex;align-items:center;padding:0 8px;font-family:var(--display);font-size:16px;color:var(--muted)}
+.scorebug .st{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:6px 10px;font-family:var(--slab);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;text-align:right}
+.scorebug .st .live{color:var(--live)}
+.scorebug .st small{color:var(--muted);font-size:12px}
+.mound{margin-top:16px;background:var(--panel)}
+.mound .hd{display:flex;justify-content:space-between;background:var(--chalk);color:var(--ink);padding:4px 10px;font-family:var(--slab);font-weight:700;font-size:13px;letter-spacing:.16em}
+.mound .bd{display:grid;grid-template-columns:minmax(0,1fr) 72px 72px;align-items:center}
+.mound .who{padding:10px 12px;min-width:0}
+.mound .who b{display:block;font-family:var(--display);font-weight:400;font-size:19px;line-height:1.2;text-transform:uppercase}
+.mound .who small{font-size:12.5px;color:var(--muted)}
+.mound .sp{text-align:center;border-left:1px solid var(--line);padding:8px 0}
+.mound .sp b{display:block;font-family:var(--display);font-weight:400;font-size:18px}
+.mound .sp small{font-family:var(--slab);font-weight:700;font-size:11px;color:var(--muted);letter-spacing:.1em}
+.note{margin:6px 0 0;font-size:12px;color:var(--faint);line-height:1.45}
+.stack{display:flex;flex-direction:column;gap:12px}
+.rest{display:grid;grid-template-columns:38px minmax(0,1fr) 64px 60px;align-items:center;width:100%;padding:0;border:0;background:var(--panel);text-align:left;min-height:48px}
+.rest .rk{align-self:stretch;display:flex;align-items:center;justify-content:center;background:var(--panel2);font-family:var(--display);font-size:16px;color:var(--muted)}
+.rest .nm{padding:0 10px;font-family:var(--slab);font-weight:700;font-size:16.5px;text-transform:uppercase}
+.rest .av{text-align:right;font-size:13px;color:var(--muted)}
+.rest .pc{text-align:right;padding-right:12px;font-family:var(--display);font-size:18px}
+.projected{margin-top:10px;background:var(--panel2);border-left:4px solid var(--hi);padding:10px 12px;font-size:13.5px}
+
+/* player screen */
+.crumb{display:flex;align-items:center;gap:8px;margin-top:12px}
+.crumb .back{width:44px;height:44px}
+.crumb span{font-family:var(--slab);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ranktag{display:inline-block;margin-top:16px;background:var(--hi);color:var(--ink);padding:3px 10px;font-family:var(--slab);font-weight:700;font-size:12px;letter-spacing:.14em;transform:skewX(-12deg);text-transform:uppercase}
+.ranktag span{display:inline-block;transform:skewX(12deg)}
+.vsline{background:var(--panel);padding:8px 12px;font-family:var(--slab);font-weight:600;font-size:14px;text-transform:uppercase;color:#CFE0D4}
+.tiles{display:grid;grid-template-columns:136px repeat(3,minmax(0,1fr));margin-top:14px}
+.tiles .big{background:var(--hi);color:var(--ink);padding:10px 12px;display:flex;flex-direction:column;justify-content:center}
+.tiles .big b{font-family:var(--display);font-weight:400;font-size:36px;line-height:1}
+.tiles .big small{font-family:var(--slab);font-weight:700;font-size:11px;letter-spacing:.12em}
+.tiles .t{background:var(--panel);padding:10px 8px;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;min-width:0}
+.tiles .t b{font-family:var(--display);font-weight:400;font-size:18px}
+.tiles .t small{font-family:var(--slab);font-weight:700;font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.factor{display:grid;grid-template-columns:36px minmax(0,1fr);background:var(--panel)}
+.factor .ic{display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:20px;color:#fff;background:var(--neutral)}
+.factor .ic.pos{background:var(--good)} .factor .ic.neg{background:var(--bad)}
+.factor .tx{padding:8px 12px}
+.factor .tx b{display:block;font-family:var(--slab);font-weight:700;font-size:16px;text-transform:uppercase}
+.factor .tx small{display:block;font-size:13px;color:var(--muted)}
+.splits{background:var(--panel)}
+.splits .r{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,52px);gap:6px;padding:10px 12px;font-size:14px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.splits .r span{text-align:right} .splits .r span:first-child{text-align:left;font-family:var(--slab);font-weight:700;text-transform:uppercase}
+.splits .h{background:var(--chalk);color:var(--ink);font-family:var(--slab);font-weight:700;font-size:12px;letter-spacing:.1em;border-top:0;padding:6px 12px}
+.splits .hl{background:rgba(70,224,123,.08)}
+
+.how{display:flex;flex-direction:column;gap:6px}
+.how div{display:grid;grid-template-columns:44px minmax(0,1fr);background:var(--panel)}
+.how div > b{display:flex;align-items:center;justify-content:center;background:var(--hi);color:var(--ink);font-family:var(--display);font-weight:400;font-size:20px}
+.how div > span{padding:10px 12px;font-size:13.5px;color:var(--muted);line-height:1.45}
+.how div > span strong{display:block;font-family:var(--slab);font-weight:700;font-size:17px;text-transform:uppercase;color:var(--text)}
+
+.state{margin-top:24px;background:var(--panel);padding:20px 16px;font-size:15px;line-height:1.5}
+.state b{display:block;font-family:var(--display);font-weight:400;font-size:19px;text-transform:uppercase;margin-bottom:6px}
+.state button{margin-top:12px;border:0;background:var(--hi);color:var(--ink);font-family:var(--slab);font-weight:700;padding:10px 14px;text-transform:uppercase;letter-spacing:.06em;min-height:44px}
+.skel{height:64px;background:var(--panel);margin-top:6px;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+@media (prefers-reduced-motion: reduce){.skel{animation:none}}
+
+nav.bottom{position:sticky;bottom:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#000;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav.bottom button{min-height:52px;background:transparent;border:0;border-top:4px solid transparent;color:var(--faint);font-family:var(--slab);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+nav.bottom button.on{border-top-color:var(--brand);color:#fff}
+.foot{margin-top:24px;font-size:11.5px;color:var(--faint);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button class="wordmark" id="home" aria-label="Hit Finder home">Hit Finder</button>
+    <div class="livetag"><span>LIVE DATA</span></div>
+    <div class="spacer"></div>
+    <button class="datebtn" id="datebtn" aria-label="Change date" aria-expanded="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>
+      <span id="datelabel">Today</span>
+    </button>
+  </header>
+  <main id="view" aria-live="polite"></main>
+  <nav class="bottom" aria-label="Main">
+    <button id="nav-slate">Slate</button>
+    <button id="nav-games">Games</button>
+    <button id="nav-how">How it works</button>
+  </nav>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const f3 = (x) => (x == null ? '–' : x >= 1 ? x.toFixed(3) : x.toFixed(3).slice(1));
+  const ord = (n) => n === 1 ? 'Leadoff' : n + (n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
+
+  const todayET = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const shiftDate = (d, n) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+  const niceDate = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+  const S = { date: todayET(), data: null, loading: true, error: null, screen: 'slate', tab: 'hitters', game: 0, side: 0, hitter: null, dateOpen: false };
+
+  async function load(date) {
+    S.date = date; S.loading = true; S.error = null; S.dateOpen = false;
+    render();
+    try {
+      const r = await fetch('/api/slate?date=' + encodeURIComponent(date));
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Could not load games.');
+      S.data = j;
+    } catch (e) {
+      S.data = null; S.error = e.message || 'Could not load games.';
+    }
+    S.loading = false;
+    render();
+  }
+
+  const go = (patch) => { Object.assign(S, patch); render(); window.scrollTo(0, 0); };
+
+  // ---------- pieces ----------
+  const teamBlock = (t, w = 56, size = 18) => `<span class="teamblk" style="min-width:${w}px;font-size:${size}px;background:${esc(t.bg)};color:${esc(t.fg)}">${esc(t.abbr)}</span>`;
+  const chips = (fs) => {
+    const pos = fs.filter((f) => f.v > 0), neg = fs.filter((f) => f.v < 0), neu = fs.filter((f) => f.v === 0);
+    return pos.slice(0, 2).concat(neg.slice(0, 1), neu).slice(0, 3)
+      .map((f) => `<span class="chip ${f.v > 0 ? 'pos' : f.v < 0 ? 'neg' : ''}">${esc(f.chip)}</span>`).join('');
+  };
+  const statusText = (g) => g.live ? '● Live' : g.final ? 'Final' : new Date(g.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  function allHitters() {
+    const out = [];
+    (S.data?.games || []).forEach((g, gi) => g.sides.forEach((s, si) => (s.hitters || []).forEach((h) => out.push({ h, s, g, gi, si }))));
+    return out.sort((a, b) => b.h.chance - a.h.chance || b.h.perPa - a.h.perPa);
+  }
+
+  // ---------- screens ----------
+  function datePanel() {
+    if (!S.dateOpen) return '';
+    const t = todayET();
+    return `<div class="datepanel">
+      <label for="datepick">Pick a date</label>
+      <div class="row"><input type="date" id="datepick" value="${esc(S.date)}"><button id="dategoBtn">Load</button></div>
+      <div class="row">
+        <button class="quick" data-date="${shiftDate(t, -1)}">Yesterday</button>
+        <button class="quick" data-date="${t}">Today</button>
+        <button class="quick" data-date="${shiftDate(t, 1)}">Tomorrow</button>
+      </div>
+    </div>`;
+  }
+
+  function slateScreen() {
+    const tabs = `<div class="tabs" role="tablist">
+      <button class="tab ${S.tab === 'hitters' ? 'on' : ''}" data-tab="hitters" role="tab" aria-selected="${S.tab === 'hitters'}"><span>Top hitters</span></button>
+      <button class="tab ${S.tab === 'games' ? 'on' : ''}" data-tab="games" role="tab" aria-selected="${S.tab === 'games'}"><span>Games · ${S.data.games.length}</span></button>
+    </div>`;
+    if (!S.data.games.length) return tabs + `<div class="state"><b>No games</b>There are no MLB games on ${esc(niceDate(S.date))}. Try another date.</div>`;
+
+    if (S.tab === 'games') {
+      return tabs + `<div class="games">${S.data.games.map((g, gi) => {
+        const pool = g.sides.flatMap((s) => s.hitters || []).sort((a, b) => b.chance - a.chance);
+        return `<button class="gcard" data-game="${gi}">
+          <span class="ghead"><span>${esc(g.desc || 'Regular season')}</span><span class="${g.live ? 'live' : ''}">${esc(statusText(g))}</span></span>
+          <span class="gteams">
+            ${teamBlock(g.away, 62, 18)}<span class="nm">${esc(g.away.nick)}</span><span class="sp">SP ${esc(g.away.sp)}</span>
+            ${teamBlock(g.home, 62, 18).replace('class="teamblk"', 'class="teamblk b2"')}<span class="nm b2">${esc(g.home.nick)}</span><span class="sp b2">SP ${esc(g.home.sp)}</span>
+          </span>
+          <span class="gfoot"><span>Top pick: <b>${pool[0] ? esc(pool[0].name) + ' ' + pool[0].chance + '%' : 'Waiting on starters'}</b></span><span class="go">TOP 3 ›</span></span>
+        </button>`;
+      }).join('')}</div>`;
+    }
+
+    const all = allHitters();
+    if (!all.length) return tabs + `<div class="state"><b>Waiting on starters</b>No probable pitchers are posted for ${esc(niceDate(S.date))} yet, so there's nothing to rank. Check back closer to game day.</div>`;
+    const b = all[0];
+    return tabs + `
+      <div class="kicker">Best bet on the slate</div>
+      <button class="l3" data-hit="${b.gi}:${b.si}:${b.h.id}">
+        <span class="bar">${teamBlock(b.s.team, 60, 18)}
+          <span class="namebox"><span class="nm">${esc(b.h.name)}</span><span class="meta">${esc(b.h.pos)} · Bats ${esc(b.h.bat)} · vs ${esc(b.s.pitcher.name)}</span></span>
+          <span class="pctbox top"><span class="n">${b.h.chance}%</span><span class="l">1+ HIT</span></span>
+        </span>
+        <span class="chips">${chips(b.h.factors)}</span>
+      </button>
+      <div class="banner"><b><span>Hit leaderboard</span></b><small>All ${all.length} starters</small></div>
+      <div class="board">${all.slice(0, 15).map((x, i) => `
+        <button class="row" data-hit="${x.gi}:${x.si}:${x.h.id}">
+          <span class="rk ${i === 0 ? 'top' : ''}">${i + 1}</span>
+          <span style="background:${esc(x.s.team.bg)};box-shadow:inset -2px 0 0 ${esc(x.s.team.fg)}"></span>
+          <span class="nm"><b>${esc(x.h.name)}</b><small>${esc(x.s.team.abbr)} · vs ${esc(x.s.pitcher.last)} (${esc(x.s.pitcher.hand)}HP)${x.s.projected ? ' · projected' : ''}</small></span>
+          <span class="pc">${x.h.chance}%</span>
+        </button>`).join('')}</div>`;
+  }
+
+  function gameScreen() {
+    const g = S.data.games[S.game];
+    const s = g.sides[S.side];
+    const head = `
+      <div class="scorebug">
+        <button class="back" data-back="slate" aria-label="Back to slate"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
+        ${teamBlock(g.away, 56, 18)}<span class="at">@</span>${teamBlock(g.home, 56, 18)}
+        <span class="st"><span class="${g.live ? 'live' : ''}">${esc(statusText(g))}</span><small>${esc(g.desc || 'Regular season')}</small></span>
+      </div>
+      <div class="tabs">${g.sides.map((x, k) => `<button class="tab" data-side="${k}" style="${k === S.side ? `background:${esc(x.team.bg)};border-color:${esc(x.team.bg)};color:${esc(x.team.fg)}` : 'border-color:#2E4A38;color:#9DB5A6'}"><span>${esc(x.team.nick)} bats</span></button>`).join('')}</div>`;
+    if (!s.pitcher || !s.hitters.length) return head + `<div class="state"><b>Not ready yet</b>${esc(s.note || 'No data for this lineup yet.')}</div>`;
+    const P = s.pitcher, hand = P.hand === 'L' ? 'LHP' : 'RHP';
+    return head + `
+      <div class="mound">
+        <div class="hd"><span>ON THE MOUND</span><span>${hand}</span></div>
+        <div class="bd">
+          <div class="who"><b>${esc(P.name)}</b><small>${esc(P.era)} ERA · ${esc(P.whip)} WHIP · vs the ${esc(s.team.nick)}</small></div>
+          <div class="sp"><b>${f3(P.vsL)}</b><small>VS LHB</small></div>
+          <div class="sp"><b>${f3(P.vsR)}</b><small>VS RHB</small></div>
+        </div>
+      </div>
+      <p class="note">Hits allowed per batter faced this season. League average is about .218.</p>
+      ${s.projected ? `<div class="projected">Lineup isn't posted yet. These are the team's nine most-used hitters, so order and plate appearances are estimates.</div>` : ''}
+      <div class="banner"><b><span>Top 3 to get a hit</span></b></div>
+      <div class="stack">${s.hitters.slice(0, 3).map((h, i) => `
+        <button class="l3" data-hit="${S.game}:${S.side}:${h.id}">
+          <span class="bar">
+            <span class="teamblk" style="min-width:46px;font-size:24px;background:${esc(s.team.bg)};color:${esc(s.team.fg)}">${i + 1}</span>
+            <span class="namebox"><span class="nm">${esc(h.name)}</span><span class="meta">${esc(h.pos)} · Bats ${esc(h.bat)}${h.slot ? ' · ' + ord(h.slot) : ''}</span></span>
+            <span class="pctbox ${i === 0 ? 'top' : ''}"><span class="n">${h.chance}%</span><span class="l">1+ HIT</span></span>
+          </span>
+          <span class="chips">${chips(h.factors)}</span>
+        </button>`).join('')}</div>
+      <div class="kicker">Rest of the lineup</div>
+      <div class="board">${s.hitters.slice(3).map((h, i) => `
+        <button class="rest" data-hit="${S.game}:${S.side}:${h.id}">
+          <span class="rk">${i + 4}</span><span class="nm">${esc(h.name)}</span><span class="av">${esc(h.vsHand.avg)}</span><span class="pc">${h.chance}%</span>
+        </button>`).join('')}</div>
+      <p class="note">Middle column: average vs ${hand} this season.</p>`;
+  }
+
+  function playerScreen() {
+    const g = S.data.games[S.game];
+    const s = g.sides[S.side];
+    const h = s.hitters.find((x) => x.id === S.hitter) || s.hitters[0];
+    const rk = s.hitters.indexOf(h) + 1;
+    const P = s.pitcher, hand = P.hand === 'L' ? 'LHP' : 'RHP', other = P.hand === 'L' ? 'RHP' : 'LHP';
+    return `
+      <div class="crumb"><button class="back" data-back="game" aria-label="Back to game"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button><span>${esc(s.team.nick)} bats · ${esc(g.away.nick)} @ ${esc(g.home.nick)}</span></div>
+      <div class="ranktag"><span>#${rk} in the ${esc(s.team.nick)} lineup</span></div>
+      <div class="l3" style="margin-top:8px"><span class="bar">${teamBlock(s.team, 60, 19)}
+        <span class="namebox"><span class="nm" style="font-size:22px">${esc(h.name)}</span><span class="meta">${esc(h.pos)} · Bats ${h.bat === 'S' ? 'switch' : esc(h.bat)}${h.slot ? ' · ' + (h.slot === 1 ? 'Leadoff' : 'Batting ' + ord(h.slot)) : ''}</span></span></span></div>
+      <div class="vsline">vs ${esc(P.name)} (${hand})</div>
+      <div class="tiles">
+        <div class="big"><b>${h.chance}%</b><small>CHANCE OF 1+ HIT</small></div>
+        <div class="t"><b>${f3(h.perPa)}</b><small>Per PA</small></div>
+        <div class="t"><b>${h.expPa}</b><small>Exp. PA</small></div>
+        <div class="t"><b>${h.h2h.ab ? h.h2h.h + '-' + h.h2h.ab : '—'}</b><small>vs ${esc(P.last)}</small></div>
+      </div>
+      <div class="banner"><b><span>The breakdown</span></b></div>
+      <div class="board">${h.factors.map((f) => `
+        <div class="factor"><span class="ic ${f.v > 0 ? 'pos' : f.v < 0 ? 'neg' : ''}">${f.v > 0 ? '+' : f.v < 0 ? '–' : '·'}</span><span class="tx"><b>${esc(f.title)}</b><small>${esc(f.detail)}</small></span></div>`).join('')}</div>
+      <div class="kicker">${esc(S.date.slice(0, 4))} splits</div>
+      <div class="splits">
+        <div class="r h"><span>SPLIT</span><span>AVG</span><span>OPS</span><span>K%</span><span>PA</span></div>
+        <div class="r hl"><span>vs ${hand}</span><span>${esc(h.vsHand.avg)}</span><span>${esc(h.vsHand.ops)}</span><span>${h.vsHand.k}%</span><span>${h.vsHand.pa}</span></div>
+        <div class="r"><span>vs ${other}</span><span>${esc(h.vsOther.avg)}</span><span>${esc(h.vsOther.ops)}</span><span>${h.vsOther.k}%</span><span>${h.vsOther.pa}</span></div>
+        <div class="r"><span>Last 15 G</span><span>${esc(h.last.avg)}</span><span>–</span><span>–</span><span>${h.last.pa}</span></div>
+      </div>
+      <p class="foot">Source: MLB Stats API. Hit chance is an estimate, not a guarantee.</p>`;
+  }
+
+  function howScreen() {
+    const items = [
+      ['Platoon split', "Each hitter's hit rate against the starter's throwing hand this season, pulled toward league average when the sample is small."],
+      ["The pitcher's weak side", 'How often the starter gives up hits to that hitter\'s side, combined with the hitter\'s rate using the log5 matchup formula.'],
+      ['Head-to-head', 'Career results against this exact pitcher, weighted lightly so a small sample can\'t take over.'],
+      ['Recent form', 'The last 15 games, blended in at 15%.'],
+      ['Lineup spot', 'Higher in the order means more trips to the plate. Hit chance is the odds of at least one hit over those trips.']
+    ];
+    return `<div class="banner"><b><span>How it works</span></b></div>
+      <div class="how">${items.map((x, i) => `<div><b>${i + 1}</b><span><strong>${esc(x[0])}</strong>${esc(x[1])}</span></div>`).join('')}</div>
+      <p class="foot">Data from the MLB Stats API, refreshed every few minutes. Lineups usually post 2 to 4 hours before first pitch; before that, the site uses each team's nine most-used hitters. Pitch-type data isn't part of this feed. For fun among friends, not betting advice.</p>`;
+  }
+
+  // ---------- render ----------
+  function render() {
+    $('#datelabel').textContent = S.date === todayET() ? 'Today' : niceDate(S.date);
+    $('#datebtn').setAttribute('aria-expanded', String(S.dateOpen));
+    let body = datePanel();
+    if (S.screen === 'how') body += howScreen();
+    else if (S.loading) body += `<div class="kicker">Loading ${esc(niceDate(S.date))}…</div>` + '<div class="skel"></div>'.repeat(6);
+    else if (S.error) body += `<div class="state"><b>Couldn't load games</b>${esc(S.error)}<br><button id="retry">Try again</button></div>`;
+    else if (S.screen === 'game') body += gameScreen();
+    else if (S.screen === 'player') body += playerScreen();
+    else body += slateScreen();
+    $('#view').innerHTML = body;
+
+    const navOn = { slate: S.screen === 'slate' && S.tab === 'hitters', games: S.screen === 'game' || S.screen === 'player' || (S.screen === 'slate' && S.tab === 'games'), how: S.screen === 'how' };
+    $('#nav-slate').classList.toggle('on', navOn.slate);
+    $('#nav-games').classList.toggle('on', navOn.games);
+    $('#nav-how').classList.toggle('on', navOn.how);
+  }
+
+  // ---------- events ----------
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.id === 'datebtn') return go({ dateOpen: !S.dateOpen });
+    if (t.id === 'home' || t.id === 'nav-slate') return go({ screen: 'slate', tab: 'hitters', dateOpen: false });
+    if (t.id === 'nav-games') return go({ screen: 'slate', tab: 'games', dateOpen: false });
+    if (t.id === 'nav-how') return go({ screen: 'how', dateOpen: false });
+    if (t.id === 'retry') return load(S.date);
+    if (t.id === 'dategoBtn') { const v = $('#datepick').value; if (v) load(v); return; }
+    if (t.dataset.date) return load(t.dataset.date);
+    if (t.dataset.tab) return go({ tab: t.dataset.tab });
+    if (t.dataset.game) return go({ screen: 'game', game: +t.dataset.game, side: 0 });
+    if (t.dataset.side) return go({ side: +t.dataset.side });
+    if (t.dataset.back) return go({ screen: t.dataset.back });
+    if (t.dataset.hit) { const [gi, si, id] = t.dataset.hit.split(':'); return go({ screen: 'player', game: +gi, side: +si, hitter: +id }); }
+  });
+
+  load(S.date);
+})();
+</script>
+</body>
+</html>

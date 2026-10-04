@@ -1,0 +1,9 @@
+{
+  "name": "hit-finder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ranks which MLB hitters are most likely to get a hit against today's starting pitchers.",
+  "engines": {
+    "node": ">=18"
+  }
+}
