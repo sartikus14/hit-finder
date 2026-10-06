@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "api/cron.js": { "maxDuration": 300 },
+    "api/football.js": { "maxDuration": 120 },
+    "api/record.js": { "maxDuration": 30 }
+  },
+  "crons": [
+    { "path": "/api/cron?job=morning", "schedule": "0 14 * * *" },
+    { "path": "/api/cron?job=evening", "schedule": "0 22 * * *" }
+  ]
+}

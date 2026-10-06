@@ -165,10 +165,20 @@ main{flex:1;padding:0 16px 32px}
 @keyframes pulse{50%{opacity:.5}}
 @media (prefers-reduced-motion: reduce){.skel{animation:none}}
 
-nav.bottom{position:sticky;bottom:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#000;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav.bottom{position:sticky;bottom:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#000;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
 nav.bottom button{min-height:52px;background:transparent;border:0;border-top:4px solid transparent;color:var(--faint);font-family:var(--slab);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
 nav.bottom button.on{border-top-color:var(--brand);color:#fff}
 .foot{margin-top:24px;font-size:11.5px;color:var(--faint);line-height:1.5}
+.sports{display:grid;grid-template-columns:1fr 1fr;background:#000}
+.sports a,.sports span{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;font-family:var(--slab);font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;border-bottom:4px solid transparent;color:var(--faint);text-decoration:none}
+.sports span{color:#fff;border-bottom-color:var(--hi)}
+.rec3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.rtile{background:var(--panel);padding:10px 12px}
+.rtile .l{font-family:var(--slab);font-weight:700;font-size:11px;letter-spacing:.14em;color:var(--muted)}
+.rtile .v{font-family:var(--display);font-size:22px;line-height:1.15}
+.rtile small{font-size:12.5px;color:var(--muted)}
+.res{display:inline-block;min-width:24px;text-align:center;font-family:var(--display);font-size:13px;padding:1px 6px}
+.res.W{background:var(--good);color:#fff}.res.L{background:var(--bad);color:#fff}
 </style>
 </head>
 <body>
@@ -182,16 +192,27 @@ nav.bottom button.on{border-top-color:var(--brand);color:#fff}
       <span id="datelabel">Today</span>
     </button>
   </header>
+  <div class="sports">
+    <span aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M7.5 4.5c2 2.2 2 12.8 0 15M16.5 4.5c-2 2.2-2 12.8 0 15"></path></svg>Baseball</span>
+    <a href="/football.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="12" rx="10" ry="6" transform="rotate(-35 12 12)"></ellipse><path d="M9.5 14.5l5-5M10.5 11l2.5 2.5M12 9.5l2.5 2.5"></path></svg>Football</a>
+  </div>
   <main id="view" aria-live="polite"></main>
   <nav class="bottom" aria-label="Main">
     <button id="nav-slate">Slate</button>
     <button id="nav-games">Games</button>
+    <button id="nav-record">Record</button>
     <button id="nav-how">How it works</button>
   </nav>
 </div>
 
 <script>
 (() => {
+  // reopen on whichever sport was used last
+  try {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('sport') && localStorage.getItem('hf-sport') === 'football') { location.replace('/football.html'); return; }
+    localStorage.setItem('hf-sport', 'baseball');
+  } catch (e) {}
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const f3 = (x) => (x == null ? '–' : x >= 1 ? x.toFixed(3) : x.toFixed(3).slice(1));
@@ -365,6 +386,36 @@ nav.bottom button.on{border-top-color:var(--brand);color:#fff}
       <p class="foot">Source: MLB Stats API. Hit chance is an estimate, not a guarantee.</p>`;
   }
 
+  let REC = null, recState = 'idle';
+  async function loadRec() {
+    recState = 'loading'; render();
+    try { const r = await fetch('/api/record?sport=mlb'); REC = await r.json(); if (!r.ok) throw new Error(REC.error || 'Could not load the record.'); recState = 'done'; }
+    catch (e) { recState = 'error'; REC = { error: e.message }; }
+    render();
+  }
+  function recordScreen() {
+    let h = `<div class="banner"><b><span>Record</span></b><small>How the picks have done</small></div>`;
+    if (recState === 'idle') { setTimeout(loadRec, 0); return h + '<div class="skel"></div>'.repeat(3); }
+    if (recState === 'loading') return h + '<div class="skel"></div>'.repeat(3);
+    if (recState === 'error') return h + `<div class="state"><b>Couldn't load the record</b>${esc(REC.error)}</div>`;
+    if (!REC.tracking) return h + `<div class="state"><b>Tracking is off</b>Pick tracking needs the free storage turned on in Vercel. The README walks through it (about a minute).</div>`;
+    h += `<p class="note">Every hitter's chance locks at 10 AM and 6 PM Eastern, before first pitch, then gets graded from the box score. Hitters who don't play are left out.</p>`;
+    const t = REC.top10, a = REC.all;
+    h += `<div class="rec3" style="margin-top:10px">
+      <div class="rtile"><div class="l">TOP 10 A DAY</div><div class="v">${t ? t.rate + '%' : '—'}</div><small>${t ? `${t.hits} of ${t.n} got a hit` : 'No results yet'}</small></div>
+      <div class="rtile"><div class="l">APP SAID</div><div class="v">${t ? t.predicted + '%' : '—'}</div><small>for those picks</small></div>
+      <div class="rtile"><div class="l">ALL HITTERS</div><div class="v">${a ? a.rate + '%' : '—'}</div><small>${a ? `app said ${a.predicted}%` : ''}</small></div></div>`;
+    if (REC.buckets.length) h += `<div class="kicker">Are the chances honest?</div><div class="splits"><div class="r h"><span>APP SAID</span><span>AVG</span><span>HIT</span><span>N</span><span></span></div>
+      ${REC.buckets.map((b) => `<div class="r"><span>${esc(b.label)}</span><span>${b.predicted}%</span><span>${b.actual}%</span><span>${b.n}</span><span></span></div>`).join('')}</div>
+      <p class="note">If hitters it gives a 70% chance get a hit about 70% of the time, the numbers are honest.</p>`;
+    const L = REC.learned || {};
+    h += `<div class="kicker">What it has learned</div>` + (L.pMult ? `<div class="factor"><span class="ic">·</span><span class="tx"><b>Hit chances scaled by ${esc(L.pMult)}×</b><small>Hitters got a hit ${esc(L.chanceRatio)}× as often as the raw model said, over ${esc(L.sample)} graded hitters.</small></span></div>`
+      : `<div class="state" style="margin-top:0"><b>Still collecting</b>It starts adjusting after about 300 graded hitters. ${esc(L.sample || 0)} so far.</div>`);
+    if (REC.days.length) h += `<div class="kicker">Top 10 by day</div><div class="board">${REC.days.map((d) => `<div class="rest" style="grid-template-columns:minmax(0,1fr) 70px 60px"><span class="nm">${esc(niceDate(d.date))}</span><span class="av">${d.top10} of ${d.of}</span><span class="pc">${Math.round((100 * d.top10) / d.of)}%</span></div>`).join('')}</div>`;
+    else h += `<div class="state"><b>Nothing graded yet</b>Results show up here the morning after the first locked games.</div>`;
+    return h;
+  }
+
   function howScreen() {
     const items = [
       ['Platoon split', "Each hitter's hit rate against the starter's throwing hand this season, pulled toward league average when the sample is small."],
@@ -384,6 +435,7 @@ nav.bottom button.on{border-top-color:var(--brand);color:#fff}
     $('#datebtn').setAttribute('aria-expanded', String(S.dateOpen));
     let body = datePanel();
     if (S.screen === 'how') body += howScreen();
+    else if (S.screen === 'record') body += recordScreen();
     else if (S.loading) body += `<div class="kicker">Loading ${esc(niceDate(S.date))}…</div>` + '<div class="skel"></div>'.repeat(6);
     else if (S.error) body += `<div class="state"><b>Couldn't load games</b>${esc(S.error)}<br><button id="retry">Try again</button></div>`;
     else if (S.screen === 'game') body += gameScreen();
@@ -391,7 +443,8 @@ nav.bottom button.on{border-top-color:var(--brand);color:#fff}
     else body += slateScreen();
     $('#view').innerHTML = body;
 
-    const navOn = { slate: S.screen === 'slate' && S.tab === 'hitters', games: S.screen === 'game' || S.screen === 'player' || (S.screen === 'slate' && S.tab === 'games'), how: S.screen === 'how' };
+    const navOn = { slate: S.screen === 'slate' && S.tab === 'hitters', games: S.screen === 'game' || S.screen === 'player' || (S.screen === 'slate' && S.tab === 'games'), how: S.screen === 'how', record: S.screen === 'record' };
+    $('#nav-record').classList.toggle('on', navOn.record);
     $('#nav-slate').classList.toggle('on', navOn.slate);
     $('#nav-games').classList.toggle('on', navOn.games);
     $('#nav-how').classList.toggle('on', navOn.how);
@@ -405,6 +458,7 @@ nav.bottom button.on{border-top-color:var(--brand);color:#fff}
     if (t.id === 'home' || t.id === 'nav-slate') return go({ screen: 'slate', tab: 'hitters', dateOpen: false });
     if (t.id === 'nav-games') return go({ screen: 'slate', tab: 'games', dateOpen: false });
     if (t.id === 'nav-how') return go({ screen: 'how', dateOpen: false });
+    if (t.id === 'nav-record') return go({ screen: 'record', dateOpen: false });
     if (t.id === 'retry') return load(S.date);
     if (t.id === 'dategoBtn') { const v = $('#datepick').value; if (v) load(v); return; }
     if (t.dataset.date) return load(t.dataset.date);

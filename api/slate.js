@@ -3,6 +3,7 @@
 // Data: MLB Stats API (statsapi.mlb.com). Personal, non-commercial use.
 
 const API = 'https://statsapi.mlb.com/api/v1';
+const store = require('../lib/store');
 const LEAGUE_HIT_RATE = 0.218; // league hits per plate appearance
 const SLOT_PA = [4.65, 4.55, 4.45, 4.35, 4.25, 4.15, 4.05, 3.95, 3.85];
 
@@ -96,7 +97,7 @@ function hitterFrom(person) {
 
 // The model. Same reasoning as the scouting reports: platoon split, the pitcher's
 // split vs the hitter's side (log5), recent form, head-to-head, lineup spot.
-function score(h, P, slot) {
+function score(h, P, slot, mult = 1) {
   const side = h.bat === 'S' ? (P.hand === 'R' ? 'L' : 'R') : h.bat;
   const hs = P.hand === 'L' ? h.vl : h.vr;
   const os = P.hand === 'L' ? h.vr : h.vl;
@@ -111,8 +112,11 @@ function score(h, P, slot) {
     p = (1 - w) * p + w * (h.h2h.h / h.h2h.pa);
   }
   const expPa = slot ? SLOT_PA[slot - 1] : 4.2;
-  const chance = 1 - Math.pow(1 - p, expPa);
-  return { side, hs, os, pitcherRate: ps.bf ? ps.h / ps.bf : null, perPa: p, expPa, chance };
+  const rawChance = 1 - Math.pow(1 - p, expPa);
+  // self-correction learned from graded results (1 = no change)
+  const pa = Math.min(0.6, p * mult);
+  const chance = 1 - Math.pow(1 - pa, expPa);
+  return { side, hs, os, pitcherRate: ps.bf ? ps.h / ps.bf : null, perPa: pa, rawPerPa: p, expPa, chance, rawChance };
 }
 
 function factors(h, P, s, slot) {
@@ -178,7 +182,17 @@ async function projectedLineup(teamId, season) {
     .slice(0, 9);
 }
 
+let calibMem = null;
+async function hitMult() {
+  if (calibMem && Date.now() - calibMem.at < 10 * 60e3) return calibMem.m;
+  let m = 1;
+  try { const c = await store.readJSON('calib.json'); m = (c && c.mlb && c.mlb.pMult) || 1; } catch (e) { m = 1; }
+  calibMem = { at: Date.now(), m };
+  return m;
+}
+
 async function buildSlate(date) {
+  const mult = await hitMult();
   const sched = await getJSON(`${API}/schedule?sportId=1&date=${date}&hydrate=probablePitcher,lineups,team`);
   const games = (sched.dates && sched.dates[0] && sched.dates[0].games) || [];
   if (!games.length) return { date, games: [] };
@@ -219,12 +233,12 @@ async function buildSlate(date) {
         if (!person) return null;
         const h = hitterFrom(person);
         const slot = projected ? null : i + 1;
-        const s = score(h, P, slot);
+        const s = score(h, P, slot, mult);
         return {
           id: h.id, name: x.fullName || h.name,
           pos: (x.primaryPosition && x.primaryPosition.abbreviation) || '',
           bat: h.bat, slot,
-          chance: Math.round(s.chance * 100), perPa: +s.perPa.toFixed(3), expPa: +s.expPa.toFixed(1),
+          chance: Math.round(s.chance * 100), rawChance: +s.rawChance.toFixed(4), perPa: +s.perPa.toFixed(3), expPa: +s.expPa.toFixed(1),
           vsHand: { avg: s.hs.avg, ops: s.hs.ops, pa: s.hs.pa, k: s.hs.pa ? Math.round((s.hs.k / s.hs.pa) * 100) : 0 },
           vsOther: { avg: s.os.avg, ops: s.os.ops, pa: s.os.pa, k: s.os.pa ? Math.round((s.os.k / s.os.pa) * 100) : 0 },
           h2h: h.h2h, last: h.last,
@@ -242,7 +256,7 @@ async function buildSlate(date) {
   const sides = await Promise.all(jobs);
 
   return {
-    date,
+    date, learned: { pMult: mult },
     updated: new Date().toISOString(),
     games: games.map((g) => {
       const st = (g.status && g.status.detailedState) || '';

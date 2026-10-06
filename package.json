@@ -2,8 +2,11 @@
   "name": "hit-finder",
   "version": "1.0.0",
   "private": true,
-  "description": "Ranks which MLB hitters are most likely to get a hit against today's starting pitchers.",
+  "description": "Hit Finder: MLB hit picks plus NFL and college football spread, total, TD and yardage picks, with tracking.",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.1"
   }
 }
