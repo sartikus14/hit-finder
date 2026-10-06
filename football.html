@@ -157,6 +157,11 @@ main{flex:1;padding:0 16px 32px}
 .tiles .bigt small{font-family:var(--slab);font-weight:700;font-size:11px;letter-spacing:.14em}
 .tiles .t{background:var(--card);border:2px solid var(--ink);border-left:0;padding:10px 8px;display:flex;flex-direction:column;justify-content:center;min-width:0}
 .tiles .t b{font-family:var(--display);font-weight:400;font-size:19px}
+.tiles2{display:grid;margin-top:-2px}
+.tiles2 .t{background:var(--card);border:2px solid var(--ink);border-left:0;padding:8px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.tiles2 .t:first-child{border-left:2px solid var(--ink)}
+.tiles2 .t b{font-family:var(--display);font-weight:400;font-size:17px}
+.tiles2 .t small{font-family:var(--slab);font-weight:700;font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .tiles .t small{font-family:var(--slab);font-weight:700;font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .linecheck{margin-top:14px;background:var(--ink);color:var(--card);padding:12px}
 .linecheck label{display:block;font-family:var(--slab);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
@@ -373,13 +378,13 @@ nav.bottom button.on{border-top-color:var(--gold);color:var(--card)}
     const g = gameById(S.game);
     if (!g) return `<div class="state patch"><b>Game not found</b><button data-back="picks">Back to picks</button></div>`;
     let h = `<div class="scorebug patch">${back('picks', 'Back to picks')}${tblock(g.away, 54)}<span class="at">@</span>${tblock(g.home, 54)}
-      <span class="st"><span>${status(g)}</span><small>${esc(g.venue)}${g.indoor ? ' · Indoor' : g.wx && g.wx.text ? ' · ' + esc(g.wx.text) + (g.wx.temp ? ', ' + esc(g.wx.temp) + '°' : '') : ''}</small></span></div>`;
+      <span class="st"><span>${status(g)}</span><small>${esc(g.venue)}${g.indoor ? ' · Indoor' : g.forecast ? ' · ' + esc(g.forecast.temp) + '°, wind ' + esc(g.forecast.wind) + ' mph' + (g.forecast.rain >= 30 ? ', ' + esc(g.forecast.rain) + '% rain' : '') : g.wx && g.wx.text ? ' · ' + esc(g.wx.text) + (g.wx.temp ? ', ' + esc(g.wx.temp) + '°' : '') : ''}</small></span></div>`;
     if (g.spread) {
       const pt = g.spread.teamId === g.home.id ? g.home : g.away;
       const appFav = g.proj.margin >= 0 ? g.home.ab : g.away.ab;
       h += `<div class="pickpanel patch"><div class="ph"><span>SPREAD PICK</span><span class="c-${esc(g.spread.conf)}">${esc(g.spread.conf.toUpperCase())}</span></div>
         <div class="pb">${tblock(pt, 64)}<div class="big"><b>${esc(g.spread.label)}</b>
-        <div>Vegas line: <b>${esc(g.line.details)}</b>${g.line.book ? ' (' + esc(g.line.book) + ')' : ''}<br>App's line: <b>${esc(appFav)} by ${esc(Math.abs(g.proj.margin))}</b><br>Edge: <b style="color:var(--red)">${esc(g.spread.edge)} points toward ${esc(pt.ab)}</b></div></div></div></div>`;
+        <div>Vegas line: <b>${esc(g.line.details)}</b>${g.line.book ? ' (' + esc(g.line.book) + ')' : ''}<br>App's line: <b>${esc(appFav)} by ${esc(Math.abs(g.proj.margin))}</b><br>${g.spread.moved ? 'Opened: <b>' + esc(g.home.ab) + ' ' + esc(g.spread.moved.from > 0 ? '+' + g.spread.moved.from : g.spread.moved.from) + '</b>' + (g.spread.moved.against ? ' (moved against this pick)' : '') + '<br>' : ''}Edge: <b style="color:var(--red)">${esc(g.spread.edge)} points toward ${esc(pt.ab)}</b></div></div></div></div>`;
     } else h += `<div class="state patch"><b>No spread yet</b>The books haven't posted a line for this game. The app will pick once they do.</div>`;
     h += `<div class="two"><div class="tile patch"><div class="l">STRAIGHT UP</div><div class="v">${esc(g.proj.winner)} wins</div><small>${esc(g.proj.winPct)}% chance</small></div>
       <div class="tile patch"><div class="l">TOTAL PICK${g.total ? ' · ' + esc(g.total.conf.toUpperCase()) : ''}</div><div class="v">${esc(g.total ? g.total.label : '—')}</div><small>App's total: ${esc(g.proj.total)}</small></div></div>
@@ -388,13 +393,14 @@ nav.bottom button.on{border-top-color:var(--gold);color:var(--card)}
     if (g.spread) h += head('Why ' + g.spread.label) + factorList(g.factors);
     const A = g.away.stats, Hh = g.home.stats;
     if (A && Hh) {
-      const rows = [['Points', 'ppg', 1], ['Points allowed', 'pa', -1], ['Yards per play', 'yppO', 1], ['Yds/play allowed', 'yppD', -1], ['Turnover margin', 'toM', 1], ['3rd down %', 't3', 1], ['Red zone TD %', 'rz', 1]]
+      const rows = [['Points', 'ppg', 1], ['Points allowed', 'pa', -1], ['Yards per play', 'yppO', 1], ['Yds/play allowed', 'yppD', -1], ['Turnover margin', 'toM', 1], ['3rd down %', 't3', 1], ['Red zone TD %', 'rz', 1], ['EPA per play', 'epaO', 1], ['EPA/play allowed', 'epaD', -1]]
         .filter((r) => A[r[1]] != null && Hh[r[1]] != null);
-      const fmt = (k, v) => k === 'toM' ? (v > 0 ? '+' + v : v) : (k === 't3' || k === 'rz') ? v + '%' : v;
+      const fmt = (k, v) => k === 'toM' ? (v > 0 ? '+' + v : v) : (k === 't3' || k === 'rz') ? v + '%' : (k === 'epaO' || k === 'epaD') ? (v > 0 ? '+' : '') + Number(v).toFixed(2) : v;
       h += `<div class="kicker">Team matchup · per game</div><div class="tbl"><div class="r h" style="grid-template-columns:minmax(0,1fr) 64px 64px"><span>STAT</span><span>${esc(g.away.ab)}</span><span>${esc(g.home.ab)}</span></div>
         ${rows.map((r) => { const a = A[r[1]], b = Hh[r[1]]; const ab = r[2] > 0 ? a > b : a < b, bb = r[2] > 0 ? b > a : b < a;
           return `<div class="r" style="grid-template-columns:minmax(0,1fr) 64px 64px"><span>${esc(r[0])}</span><span class="${ab ? 'b' : 'd'}">${esc(fmt(r[1], a))}</span><span class="${bb ? 'b' : 'd'}">${esc(fmt(r[1], b))}</span></div>`; }).join('')}
-        <div class="r" style="grid-template-columns:minmax(0,1fr) 64px 64px"><span>Strength rating</span><span class="${g.away.rating > g.home.rating ? 'b' : 'd'}">${esc(g.away.rating)}</span><span class="${g.home.rating >= g.away.rating ? 'b' : 'd'}">${esc(g.home.rating)}</span></div></div>
+        <div class="r" style="grid-template-columns:minmax(0,1fr) 64px 64px"><span>Strength rating</span><span class="${g.away.rating > g.home.rating ? 'b' : 'd'}">${esc(g.away.rating)}</span><span class="${g.home.rating >= g.away.rating ? 'b' : 'd'}">${esc(g.home.rating)}</span></div>
+        ${g.rest && g.rest.away != null && g.rest.home != null ? `<div class="r" style="grid-template-columns:minmax(0,1fr) 64px 64px"><span>Days of rest</span><span class="${g.rest.away >= g.rest.home ? 'b' : 'd'}">${esc(g.rest.away)}</span><span class="${g.rest.home >= g.rest.away ? 'b' : 'd'}">${esc(g.rest.home)}</span></div>` : ''}</div>
         <p class="note">Darker number is the better one. Strength rating is points better than an average team, adjusted for who they've played.</p>`;
     }
     const P = g.players;
@@ -422,6 +428,10 @@ nav.bottom button.on{border-top-color:var(--gold);color:var(--card)}
     const tiles = isQB ? [[p.ry, 'Rush yds'], [p.td + '%', 'Any TD'], [(p.s.ptd / (p.g || 1)).toFixed(1), 'Pass TD/G']]
       : runner ? [[p.ry, 'Rush yds'], [p.cy, 'Rec yds'], [p.rzS + '%', 'RZ share']]
         : [[p.cy, 'Rec yds'], [p.tgS + '%', p.tgtEst ? 'Catch share' : 'Tgt share'], [p.s.rz, 'RZ looks']];
+    const extra = [];
+    if (!isQB && p.snap && p.snap.recent != null) extra.push([p.snap.recent + '%', 'Snaps lately']);
+    if (!isQB && !runner && p.adot != null) extra.push([p.adot + ' yds', 'Avg target depth']);
+    if (!isQB && !runner && p.airShare != null) extra.push([p.airShare + '%', 'Air yards share']);
     S.proj = proj;
     const { verdict, vnote, vcls } = verdictFor(proj, S.line);
     const head2 = isQB ? ['OPP', 'PASS', 'P TD', 'RUSH', 'TD'] : runner ? ['OPP', 'CAR', 'RUSH', 'REC Y', 'TD'] : ['OPP', p.tgtEst ? 'REC' : 'TGT', 'REC', 'YDS', 'TD'];
@@ -435,6 +445,7 @@ nav.bottom button.on{border-top-color:var(--gold);color:var(--card)}
       <div class="vsline"><span>vs ${esc(p.opp)} · ${esc(when(g.date))}</span>${p.inj ? `<span class="inj">${esc(p.inj.toUpperCase())}</span>` : ''}</div>
       <div class="tiles"><div class="bigt"><b>${esc(isQB ? p.py : p.td + '%')}</b><small>${isQB ? 'PROJ PASS YDS' : 'CHANCE OF A TD'}</small></div>
         ${tiles.map((t) => `<div class="t"><b>${esc(t[0])}</b><small>${esc(t[1])}</small></div>`).join('')}</div>
+      ${extra.length ? `<div class="tiles2" style="grid-template-columns:repeat(${extra.length},minmax(0,1fr))">${extra.map((t) => `<div class="t"><b>${esc(t[0])}</b><small>${esc(t[1])}</small></div>`).join('')}</div>` : ''}
       <div class="linecheck"><label for="lineInput">Check a line · ${esc({ pass: 'passing yards', rush: 'rushing yards', rec: 'receiving yards' }[p.kind])}</label>
         <div class="row"><input id="lineInput" inputmode="decimal" placeholder="Book's line, e.g. ${esc((Math.round(proj / 5) * 5 - 0.5).toFixed(1))}" value="${esc(S.line)}"><span class="verdict ${vcls}" id="verdict">${esc(verdict)}</span></div>
         <p id="vnote">${esc(vnote)}</p></div>
@@ -497,22 +508,26 @@ nav.bottom button.on{border-top-color:var(--gold);color:var(--card)}
     const sec = (t, items) => `<div class="kicker">${esc(t)}</div><div class="how">${items.map((x, i) => `<div><b>${i + 1}</b><span><strong>${esc(x[0])}</strong>${esc(x[1])}</span></div>`).join('')}</div>`;
     return head('How it works') +
       sec('Spread and total picks', [
-        ['Team strength', 'Point margin and yards per play on both sides of the ball, adjusted for who each team has played. Blowouts count less past about 17 points (24 in college), so beating up on a weak team can\'t inflate a rating. FCS opponents are rated as one group.'],
-        ['Game factors', 'Home field (about 1.7 points in the NFL, 2.7 in college), the starting QB being out, pace, and rain or snow for outdoor games.'],
+        ['Team strength', 'Point margin and efficiency on both sides of the ball, adjusted for who each team has played. The NFL uses EPA per play from nflverse (how much each play helps a team score), college uses yards per play. Blowouts count less past about 17 points (24 in college), so beating up on a weak team can\'t inflate a rating. FCS opponents are rated as one group.'],
+        ['Last season as a head start', 'Early on, last season\'s ratings fill in for the small sample. They fade out week by week and are gone after 8 games in the NFL and 6 in college.'],
+        ['Game factors', 'Home field (about 1.7 points in the NFL, 2.7 in college), the starting QB or key defenders being out, short weeks and byes, long travel and West Coast teams at early kickoffs, pace, and the kickoff forecast (wind and rain) for outdoor games.'],
+        ['Line movement', 'If the line has moved 2.5 points or more against a pick since it opened, the pick drops one confidence level. Big moves usually mean sharp money or news.'],
         ['Compare to Vegas', 'The app puts its ratings on the same scale as the betting market, makes its own line, and picks the side of the Vegas spread it disagrees with. Every pick shows the exact line. Early in the season it leans partly on the Vegas line and trusts its own numbers more each week.'],
         ['Confidence', 'Strong: 2.5+ points of edge (3 in college). Solid: 1.2 to 2.5 (1.5 to 3 in college). Lean: less than that.']]) +
       sec('Anytime TD', [
         ['Team scoring outlook', 'Expected points come from the spread and total, then turn into expected touchdowns.'],
         ['Red zone and goal-line role', 'Each player\'s share of touches inside the 20 and the 10, and carries inside the 5. Half the weight goes here.'],
-        ['Opponent and form', 'TDs allowed to runners or receivers, season TD rate, and the last 2 games counted extra.']]) +
+        ['Opponent and form', 'TDs allowed to runners or receivers, season TD rate, and the last 2 games counted extra.'],
+        ['Injuries', 'When a teammate is out, his carries and targets get passed to the players who would take them. Missing key defenders on the other side give a small boost.']]) +
       sec('Yards', [
         ['Volume', 'Carries, targets, or pass attempts per game, with the last 2 games weighted 1.5 times.'],
         ['Efficiency and opponent', 'Yards per carry, target, or attempt, pulled toward average for small samples, then adjusted for what the defense allows.'],
-        ['Game script and pace', 'Favorites run more, underdogs throw more. Fast-paced matchups get a bump.']]) +
+        ['Role', 'NFL snap share and target share from nflverse. A player whose snaps are climbing gets more volume, and deeper targets earn more yards per catch.'],
+        ['Game script, pace, weather', 'Favorites run more, underdogs throw more. Fast-paced matchups get a bump, and strong wind trims passing yards.']]) +
       sec('Tracking and learning', [
         ['Locked picks', 'Picks lock at 10 AM and 6 PM Eastern on game days and get graded after the game against the line they were locked at.'],
         ['Self-correction', 'After enough results, TD chances and yardage projections scale themselves to match what actually happens, and the app adjusts how much it trusts its own line versus Vegas.']]) +
-      `<p class="foot">Data from ESPN's public scoreboards and box scores. College target counts aren't in ESPN's data, so they're estimated from catches. For fun among friends, not betting advice.</p>`;
+      `<p class="foot">Data from ESPN's public scoreboards and box scores, nflverse, and Open-Meteo forecasts. College target counts aren't in ESPN's data, so they're estimated from catches. For fun among friends, not betting advice.</p>`;
   }
 
   function render() {

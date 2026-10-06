@@ -42,6 +42,18 @@ After that it runs on its own every day at about 10 AM and 6 PM Eastern. You can
 - After the game, the next run grades it: spread, total and winner, every TD and yardage projection, and every hitter's hit chance.
 - After about 300 graded players (or hitters), the app scales its TD, yardage and hit chances to match what really happens. After 40 graded games it adjusts how much it trusts its own line versus Vegas. The Record screen shows what it has learned.
 
+## Football inputs
+
+- **Team strength:** opponent-adjusted margin plus NFL EPA per play (nflverse) or college yards per play.
+- **Last season:** a head start that fades out, gone after 8 NFL games and 6 college games.
+- **Injuries:** QB out, key defenders out (top tacklers), and injured players' carries and targets passed to teammates.
+- **Weather:** Open-Meteo kickoff forecast for outdoor games. Wind and heavy rain lower the total and passing yards.
+- **Rest and travel:** short weeks, byes, 2+ time zones, West Coast teams at early East Coast kickoffs.
+- **Line movement:** a move of 2.5+ points against a pick since the open drops it one confidence level.
+- **Roles (NFL):** snap share trend, target share, air yards and average target depth from nflverse.
+
+nflverse data refreshes once a day during the daily job.
+
 ## Install it like an app
 
 - **iPhone (Safari):** open the site, tap Share, then **Add to Home Screen**.
