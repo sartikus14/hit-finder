@@ -77,7 +77,7 @@ function mlbSummary(rec) {
 
 module.exports = async function handler(req, res) {
   const sport = ['nfl', 'cfb', 'mlb'].includes(req.query && req.query.sport) ? req.query.sport : 'nfl';
-  if (!store.enabled()) return res.status(200).json({ sport, tracking: false });
+  if (!store.enabled()) return res.status(200).json({ sport, tracking: false, storage: store.envInfo() });
   try {
     const now = new Date();
     let season = now.getFullYear();
